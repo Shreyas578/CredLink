@@ -34,8 +34,8 @@ const CreditDelegationABI = [
     "function getDelegators(address delegatee) external view returns (address[] memory)"
 ];
 
-function loadContracts() {
-    if (deployedAddresses) return true;
+function loadContracts(forceReload = false) {
+    if (deployedAddresses && !forceReload) return true;
 
     // Look for deployed-addresses.json
     const possiblePaths = [
@@ -96,7 +96,7 @@ function loadContracts() {
  * Submit a verified payment to the blockchain
  */
 async function submitPayment({ userAddress, transactionId, merchant, amount, isTrusted, ipfsHash }) {
-    if (!loadContracts()) {
+    if (!loadContracts(true)) {
         throw new Error("Oracle not yet configured — deploy contracts and fill .env first");
     }
 
@@ -126,7 +126,7 @@ async function submitPayment({ userAddress, transactionId, merchant, amount, isT
  * Get a user's credit passport data
  */
 async function getPassport(walletAddress) {
-    if (!loadContracts()) {
+    if (!loadContracts(true)) {
         // Return mock data if not deployed
         return {
             creditScore: 0,
@@ -195,7 +195,7 @@ async function isTransactionProcessed(transactionId) {
  * Get user payment history
  */
 async function getPaymentHistory(walletAddress) {
-    if (!loadContracts()) return [];
+    if (!loadContracts(true)) return [];
     try {
         const count = Number(await paymentVerificationContract.getUserPaymentCount(walletAddress));
         const payments = [];

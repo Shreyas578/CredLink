@@ -4,6 +4,28 @@ const fs = require("fs");
 const os = require("os");
 
 // Persistent worker for faster OCR
+const dateLikelyPatterns = [
+    /\d{1,2}[\/\-\.]\d{1,2}[\/\-\.](?:20)?\d{2}/, // 06-03-2026 or 06-03-26
+    /(?:20)?\d{2}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}/, // 2026-03-06
+    /\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i,
+    /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i, // March 2026
+    /\b(?:20)?2[4-9]\b/ // Standalone years like 26, 2026 (specific to current era)
+];
+
+function isPartOfDate(text, matchIndex, matchLength, valStr) {
+    const snippet = text.substring(Math.max(0, matchIndex - 15), matchIndex + matchLength + 15);
+
+    // Explicit check: is this value '26' or '2026' and surrounded by date context?
+    if (valStr === '26' || valStr === '2026') {
+        const yearContext = text.substring(Math.max(0, matchIndex - 30), matchIndex + matchLength + 30);
+        if (/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Timestamp|Date|at)/i.test(yearContext)) {
+            return true;
+        }
+    }
+
+    return dateLikelyPatterns.some(p => p.test(snippet));
+}
+
 let worker = null;
 
 async function getWorker() {
@@ -69,30 +91,35 @@ function parsePaymentFields(text) {
 
     // Amount — look for ₹, Rs., INR, or "Amount —" followed by number
     const amtPatterns = [
-        // PhonePe style: [Name] [Lots of spaces] ₹/¥[Amount]
-        /[A-Za-z\s]{3,}\s*[₹Z$SeE¥yY]\s*([\d,]{2,}(?:\.\d{1,2})?)/i,
-        // Match name followed by gaps and then ₹###
-        /[^\n]{2,}\s{1,}[₹Z$SeE¥yY]\s*([\d,]{2,}(?:\.\d{1,2})?)/i,
-        // Common pattern on UPI receipts like "₹800"
+        // PhonePe / GPay style: Name [gap] ₹/Z/S [Amount]
+        /[A-Za-z\s]{3,}\s*[₹Z$SeE¥yY]{1,2}\s*([\d,]{2,}(?:\.\d{1,2})?)/i,
+        // Match specific currency words
+        /(?:amount|amt|value|val|total|paid|payment|total\s*pay|paid\s*to\s*.*?|transfer\s*of)[\s\:\-\—\.\=\>₹¥ZS$]{0,5}\s*(?:₹|Rs\.?|INR|[ZS$eE¥yY]){0,2}\s*([\d,]+(?:\.\d{1,2})?)/i,
+        // Common pattern on UPI receipts like "₹800" or misreads like "Z800", "S800"
         /[₹Z$SeE¥yY]\s*([\d,]{2,}(?:\.\d{1,2})?)/i,
-        // Match numbers following large gaps (avoiding tiny single/double digit date parts)
-        /\s{2,}([\d,]{3,}(?:\.\d{1,2})?)(?:\s+|$)/i,
-        // Match "Amount" followed by a number
-        /(?:amount|amt|value|val|total|paid|payment|total\s*pay|paid\s*to\s*.*?|transfer\s*of)[\s\:\-\—\.\=\>₹¥]{0,5}\s*(?:₹|Rs\.?|INR|[ZS$eE¥yY])?\s*([\d,]+(?:\.\d{1,2})?)/i,
         // Standalone price-like patterns (must have decimals to be sure)
-        /\b([\d,]+\.\d{2})\b/,
+        /\b([\d,]+\.\d{2})\b/
     ];
     console.log("[OCR] Joining lines for matching. Text sample:", joined.substring(0, 300));
 
+    const MAX_PLAUSIBLE_AMOUNT = 1000000;
     let amount = 0;
     for (const p of amtPatterns) {
         const m = joined.match(p);
         if (m) {
-            console.log(`[OCR] Amount pattern matched: ${p}. Match: ${m[0]} -> ${m[1]}`);
-            const val = m[1].replace(/,/g, "");
-            if (!isNaN(parseFloat(val))) {
-                amount = parseFloat(val);
-                break;
+            const valStr = m[1]?.replace(/,/g, "");
+            const val = parseFloat(valStr);
+            // Safety Check: Avoid Transaction IDs (usually 12+ digits) and huge outliers
+            if (!isNaN(val) && val > 0 && val < MAX_PLAUSIBLE_AMOUNT && valStr.length < 12) {
+                // EXCLUSION: If this number is part of a date pattern, skip it
+                if (isPartOfDate(joined, m.index, m[0].length, valStr)) {
+                    console.log(`[OCR] Skipping potential date match: ${val}`);
+                    continue;
+                }
+
+                console.log(`[OCR] Amount pattern matched: ${p}. Match: ${m[0]} -> ${val}`);
+                amount = val;
+                break; // Stop at first strong match
             }
         }
     }

@@ -4,9 +4,9 @@
   "deployer": "0xe7b30321edC5311Ddf589da2a01cD381Ba6Ac42D",
   "deployedAt": "2026-03-06T13:54:16.051Z",
   "contracts": {
-    "MerchantRegistry": "0x53a531F1B015d8d9Ed3720416641152D9402906D",
-    "CreditPassport": "0x4568D11D0210451832064FF662C217CaFA849435",
-    "PaymentVerification": "0xbF200511853A85d4e3D4c67B69a8c0f3f29a3eaA",
-    "CreditDelegation": "0xe6cCa9B190613E1fD0FDb3caB869D06B55F24412"
+    "MerchantRegistry": "0x5E49275fCbd6B2C6bF62E7782F2Bbb054CD2664a",
+    "CreditPassport": "0x27C174E8E7851117C57488f7dB0D411D2A52E81f",
+    "PaymentVerification": "0x09701Ea52733dD44f3fc4e862CE22E595D56743a",
+    "CreditDelegation": "0x29D609883d090C41eE3c8A20f3B595fF15EDc231"
   }
 }
