@@ -1,0 +1,20 @@
+{
+  "name": "credlink-contracts",
+  "version": "1.0.0",
+  "description": "CredLink Smart Contracts for Creditcoin Testnet",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network creditcoin_testnet",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat",
+    "test": "hardhat test",
+    "node": "hardhat node"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.0",
+    "dotenv": "^16.4.5"
+  }
+}

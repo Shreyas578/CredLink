@@ -1,0 +1,12 @@
+{
+  "network": "creditcoin-testnet",
+  "chainId": 102031,
+  "deployer": "0xe7b30321edC5311Ddf589da2a01cD381Ba6Ac42D",
+  "deployedAt": "2026-03-06T13:54:16.051Z",
+  "contracts": {
+    "MerchantRegistry": "0x53a531F1B015d8d9Ed3720416641152D9402906D",
+    "CreditPassport": "0x4568D11D0210451832064FF662C217CaFA849435",
+    "PaymentVerification": "0xbF200511853A85d4e3D4c67B69a8c0f3f29a3eaA",
+    "CreditDelegation": "0xe6cCa9B190613E1fD0FDb3caB869D06B55F24412"
+  }
+}
